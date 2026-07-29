@@ -1,0 +1,7 @@
+plan.txt
+test.py
+test.cpp
+token.txt
+*.exe
+.vscode
+__pycache__
