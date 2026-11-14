@@ -25,7 +25,7 @@ def prob(message1:str,message2:str) -> bool :
     try :
         maxNum = min(len(message1),len(message2))
         ans = subprocess.run(
-            ["./Model4/exeFunc/LCS.exe"],
+            ["/app/src/exeFunc/LCS.exe"],
             input=f"{message1}'\n'{message2}",
             capture_output=True,
             text=True,
@@ -35,11 +35,11 @@ def prob(message1:str,message2:str) -> bool :
         if ( int(ans) >= int(maxNum*0.8) ) : # 0.8 can be hyper parameters
             return True
     
-    except subprocess.CalledProcessError :
-        print("Sorry, something went wrong with the .exe file.")
-
     except FileNotFoundError :
         print("Can't find the .exe file, please compile LCS.cpp first.")
+    
+    except Exception as e :
+        print(f"Something went wrong with the .exe file. {e}")
         
     return False
 
@@ -54,11 +54,9 @@ def is_spam(username:str,server:int ,channal:int, message:str, UserMessageTable:
 
     try :
         Data  = UserMessageTable[username]
-        #print(Data)
         same_server = Data.server == server
         not_same_channal = Data.channal != channal
         same_message = prob(Data.message,message)
-        #print(same_message,same_server,not_same_channal,"<-")
 
         if (same_message and same_server and not_same_channal): #checking if it's spam
             UserMessageTable[username].update(server,channal,message)

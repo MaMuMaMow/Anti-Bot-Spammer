@@ -1,9 +1,12 @@
 from enum import member
 import discord
+import os
+import sys
 
 from discord.ext import commands
-import Imgs
-import Msg
+from img import Imgs
+from msg import Msg
+from logger.logger import log
 
 Botname = "Test Bot 001"    # Change this value to your bot name so the bot wont cought its self.
 intent = discord.Intents.default()
@@ -14,16 +17,18 @@ client = commands.Bot(command_prefix="/", intents=intent)
 UserMessageTable : dict[str,Msg.UserMessage] = {}
 UserImageTable : dict[str,Imgs.UserFile] = {}
 
+fromWhere = "main.py"
+
 #--------------------------------- bot logic-------------------------------
 
 @client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+    log(msg='We have logged in as {0.user}'.format(client), evn=0,fromWhere=fromWhere)
 
 @client.event
 async def on_message(message):
     if message.content:
-        print(message.author.name," : ",message.content)
+        log(msg=f'{message.author.name}" : {message.content}',evn=1,act=0,fromWhere=fromWhere)
 
         msg = message.content.replace("\n","")
         msg = msg.replace(" ","")
@@ -40,8 +45,7 @@ async def on_message(message):
             except KeyError:
                 UserMessageTable[message.author.name] = Msg.UserMessage(message.guild.id,message.channal.id,message.content)
 
-    if message.attachments:
-        if await Imgs.is_spam(
+    if message.attachments and await Imgs.is_spam(
             str(message.author.name),
             int(message.guild.id),
             int(message.channel.id),
@@ -49,28 +53,17 @@ async def on_message(message):
             UserImageTable
             ):
             await message.channel.send(f"Alert! user : {message.author.name} might be a spammer by sending image!")
-
-    print(UserMessageTable)
-    print(UserImageTable)
             
 #===========================================================================
 #run the bot
 #===========================================================================
 
-try:
-    with open(file="token.txt",mode="r",encoding="UTF-8") as token:
-        token = token.readline()
-        client.run(token)
+token = os.environ.get("BOT_TOKEN","")
+if not token :
+    log(msg="No token provided",evn=3,act=-1,fromWhere=fromWhere)
+    sys.exit(1)
         
-except FileNotFoundError :
-    with open(file="token.txt",mode="w") as newTokenFile :
-        token = str(input("Please enter your bots token : "))
-        newTokenFile.write(token)
-
-    with open(file="token.txt",mode="r",encoding="UTF-8") as token:
-        token = token.readline()
-        client.run(token)
-except discord.LoginFailure :
-    print("The bots token is invalid.")
-except :
-    print("Sorry, something went wrong. Please review the codes")
+try :
+    client.run(token)
+except Exception as e:
+    log(msg=f"cannot start the bot, error :\n {token}",evn=3,act=-1,fromWhere=fromWhere)
