@@ -1,10 +1,7 @@
-plan.txt
-test.py
-test.cpp
-token.txt
-*.exe
 .vscode
 __pycache__
+test.*
 test
-*.png
-*.jpg
+poc
+.env
+token.txt

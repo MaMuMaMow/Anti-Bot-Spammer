@@ -1,0 +1,4 @@
+BOT_TOKEN=<your bot token here>
+POSTGRES_USER=asby
+POSTGRES_PASSWORD=<database password here>
+POSTGRES_DB=asby

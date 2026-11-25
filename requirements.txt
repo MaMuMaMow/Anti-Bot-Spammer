@@ -1,2 +1,2 @@
 discord==2.0
-ImageHash==4.3.2
+asyncpg==0.32.0

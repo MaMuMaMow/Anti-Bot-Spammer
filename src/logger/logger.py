@@ -17,12 +17,14 @@ def log(
     }
     
     actionDict = {
-       -1 : "UNKNOWN",
+       -1 : "OTHER",
         0 : "COLLECT",
-        1 : "ALERT",
-        2 : "MUTE",
-        3 : "KICK",
-        4 : "BAN",
+        1 : "COMMAND",
+        2 : "ALERT",
+        3 : "MUTE",
+        4 : "KICK",
+        5 : "BAN",
+        6 : "DB",
     }
 
     now_utc = datetime.datetime.now(timezone.utc)
