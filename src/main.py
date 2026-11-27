@@ -71,9 +71,23 @@ async def csch(interaction: discord.Interaction):
 @app_commands.guild_only()
 @app_commands.default_permissions(manage_channels=True)
 @app_commands.checks.bot_has_permissions(administrator=True)
-@tree.command(name='acquit',description="cancle the punishments")
-async def acquit(interaction: discord.Interaction, user : discord.User):
-    await aq(interaction=interaction,user=user, susDict=susDict)
+@app_commands.describe(
+    user="Pick a user (only works for people still in the server)",
+    userid="User ID (the number one, works for banned or kicked users)")
+@tree.command(name='acquit',description="cancle the punishments, including timed out or ban")
+async def acquit(interaction: discord.Interaction, user : discord.User | None = None, userid : str | None = None):
+    if user :
+       memberId = user.id
+    else :
+        try :
+            memberId = int(userid)
+        except :
+            return await interaction.response.send_message("invalid userid (UID)",ephemeral=True)
+
+    if not memberId:
+        return await interaction.response.send_message(
+            "you must provide user or user ID", ephemeral=True)
+    await aq(interaction=interaction,userId=memberId, susDict=susDict)
 
 #settings
 @has_permissions(administrator=True)
@@ -84,6 +98,9 @@ async def config(interaction: discord.Interaction):
     await interaction.response.send_message(
         "edit bot config", view=SettingsPanel(setting=settingsCache), ephemeral=True
     )
+    print(settingsCache)
+
+
 @tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.BotMissingPermissions):
@@ -109,7 +126,17 @@ async def on_message(message: discord.Message):
     # Ignore bots (including this one) and DMs (no guild -> no guild.id)
     if message.author.id == client.user.id:
         return
-    
+
+    susKey = (message.guild.id,message.author.id)
+    if len(susDict.get(susKey,[])) >= settingsCache[message.guild.id]["minRooms"] :
+        await message.delete()
+        msg = """
+        You have been flagged as a spam bot and every message you send will constantly get delete
+        To remove this status, use the command /acquit on yourself.
+        """
+        await message.author.send(msg)
+        return
+
     await asby.msgCache.update_msg_cache(msgCache=msgCache, settingsCache=settingsCache, msg=message)
     print(msgCache)
     await is_spam(message=message,settings=settingsCache,susDict=susDict,bot=client,msgCache=msgCache)

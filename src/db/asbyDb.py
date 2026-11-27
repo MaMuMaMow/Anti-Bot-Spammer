@@ -129,7 +129,7 @@ async def get_spam_room(guildId: int) -> dict | None:
         f"SELECT {COLUMNS} FROM spmRoomSettings WHERE guildId = $1", guildId
     )
     return row_to_settings(row) if row else None
-
+    
 
 async def set_chIds(guildId: int, alive: list) -> None:
     await db().execute(
@@ -154,7 +154,7 @@ async def get_all_spam_rooms() -> dict[int, dict]:
     return {r["guildid"]: row_to_settings(r) for r in rows}
 
 #dict is the settingsCache
-async def update_setting(data: dict) -> dict:
+async def update_setting(data: dict,guildId : int) -> dict:
     """
     Insert or update one guild's settings when a user configures them.
 
@@ -178,10 +178,6 @@ async def update_setting(data: dict) -> dict:
     invalid. Nothing is written in that case.
     """
     data = dict(data)                       # don't modify the caller's dict
-    guildId = data.pop("guildId", None)
-    if not is_int(guildId):
-        raise ValueError("guildId (int) is required")
-
     unknown = set(data) - set(UPDATABLE_KEYS)
     if unknown:
         raise ValueError(f"unknown setting(s): {sorted(unknown)}")
@@ -197,19 +193,17 @@ async def update_setting(data: dict) -> dict:
     else:
         setPart = "guildId = EXCLUDED.guildId"   # nothing to change; still return the row
 
-    row = await db().fetchrow(
+    await db().fetchrow(
         f"""
         INSERT INTO spmRoomSettings ({", ".join(["guildId", *cols])})
         VALUES ({placeholders})
         ON CONFLICT (guildId) DO UPDATE SET {setPart}
-        RETURNING {COLUMNS}
         """,
         guildId, *values.values()
     )
 
     log(msg=f"updated settings for guild {guildId}: {', '.join(cols) or 'nothing'}",
         evn=1, act=6, fromWhere=f"{fromWhere}/update_setting()")
-    return row_to_settings(row)
 
 
 async def delete_guild(guild_id: int) -> None:

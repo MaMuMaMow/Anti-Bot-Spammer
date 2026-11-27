@@ -46,7 +46,7 @@ async def is_spam(message: discord.Message,settings : dict, susDict : dict[tuple
 
             await apply_punishment(punishment=setting["punishment"],guild=guild,
                                    member=member,timeout=setting["timeoutDuration"])
-
+            susDict.pop(susKey,"")
 
         except discord.Forbidden:
             log(msg=f"Missing permission to punish {member} in {guild}", evn=3, act=0, fromWhere=fromWhere)

@@ -40,20 +40,21 @@ class GeneralModal(SafeModal, title="Settings"):
     def __init__(self, guild_id: int, s: dict):
         super().__init__()
         self.guild_id = guild_id
-
+        self.cache = s
+        self.s = self.cache[guild_id]
         self.punishment = discord.ui.Select(
             options=[
                 discord.SelectOption(label="Ban", value="ban",
-                                     default=s["punishment"] == "ban"),
+                                     default=self.s["punishment"] == "ban"),
                 discord.SelectOption(label="Kick", value="kick",
-                                     default=s["punishment"] == "kick"),
+                                     default=self.s["punishment"] == "kick"),
                 discord.SelectOption(label="Timeout", value="timeout",
-                                     default=s["punishment"] == "timeout"),
+                                     default=self.s["punishment"] == "timeout"),
             ],
         )
-        self.timeout_duration = num_input(s["timeoutDuration"])
-        self.min_rooms = num_input(s["minRooms"])
-        self.time_gap = num_input(s["timeGap"])
+        self.timeout_duration = num_input(self.s["timeoutDuration"])
+        self.min_rooms = num_input(self.s["minRooms"])
+        self.time_gap = num_input(self.s["timeGap"])
 
         self.add_item(discord.ui.Label(
             text="Punishment",
@@ -77,14 +78,18 @@ class GeneralModal(SafeModal, title="Settings"):
             data = {
                 "punishment": self.punishment.values[0],
                 "timeoutDuration": parse_int(self.timeout_duration.value,
-                                             "Timeout duration", 1, 2_419_200),
-                "minRooms": parse_int(self.min_rooms.value, "Min spam rooms", 1, 50),
-                "timeGap": parse_int(self.time_gap.value, "Time gap", 1, 50),
+                                             "Timeout duration", 60, 2_419_200),
+                "minRooms": parse_int(self.min_rooms.value, "Min spam rooms", 1, 10),
+                "timeGap": parse_int(self.time_gap.value, "Time gap", 1, 3600),
             }
+
+            for key in data :
+                self.cache[self.guild_id][key] = data[key]
+
         except ValueError as e:
             return await interaction.response.send_message(str(e), ephemeral=True)
+        await asbyDb.update_setting(data=data,guildId=interaction.guild.id)
         await interaction.response.send_message("Settings saved.", ephemeral=True)
-        print(data)
 
 # --------------------------------------------------------------------------
 # Modal 2: advanced settings
@@ -94,11 +99,13 @@ class AdvancedModal(SafeModal, title="Advanced settings"):
     def __init__(self, guild_id: int, s: dict):
         super().__init__()
         self.guild_id = guild_id
-
-        self.del_amount = num_input(s["msgCacheDelAmount"])
-        self.del_time = num_input(s["msgCacheDelTime"])
-        self.cache_duration = num_input(s["msgCacheDuration"])
-        self.cache_amount = num_input(s["msgCacheAmount"])
+        self.cache = s
+        self.s = self.cache[guild_id]
+        
+        self.del_amount = num_input(self.s["msgCacheDelAmount"])
+        self.del_time = num_input(self.s["msgCacheDelTime"])
+        self.cache_duration = num_input(self.s["msgCacheDuration"])
+        self.cache_amount = num_input(self.s["msgCacheAmount"])
 
         self.add_item(discord.ui.Label(
             text="Message delete amount",
@@ -129,6 +136,8 @@ class AdvancedModal(SafeModal, title="Advanced settings"):
                 "msgCacheAmount": parse_int(self.cache_amount.value,
                                               "Message caching amount", 1, 50),
             }
+            for key in data :
+                self.cache[self.guild_id][key] = data[key]
         except ValueError as e:
             return await interaction.response.send_message(str(e), ephemeral=True)
 
@@ -142,8 +151,9 @@ class AdvancedModal(SafeModal, title="Advanced settings"):
                 "Message delete time can't be longer than the caching duration.",
                 ephemeral=True)
 
+        await asbyDb.update_setting(data=data,guildId=interaction.guild.id)
         await interaction.response.send_message("Advanced settings saved.", ephemeral=True)
-        print(data)
+        print(self.cache)
 # --------------------------------------------------------------------------
 # Panel (two buttons, one per modal)
 # --------------------------------------------------------------------------
@@ -155,10 +165,8 @@ class SettingsPanel(discord.ui.View):
 
     @discord.ui.button(label="Settings", style=discord.ButtonStyle.primary)
     async def general(self, interaction: discord.Interaction, button: discord.ui.Button):
-        s = self.setting[interaction.guild.id]
-        await interaction.response.send_modal(GeneralModal(interaction.guild_id, s))
+        await interaction.response.send_modal(GeneralModal(interaction.guild_id, self.setting))
 
     @discord.ui.button(label="Advanced", style=discord.ButtonStyle.secondary)
     async def advanced(self, interaction: discord.Interaction, button: discord.ui.Button):
-        s = self.setting[interaction.guild.id]
-        await interaction.response.send_modal(AdvancedModal(interaction.guild_id, s))
+        await interaction.response.send_modal(AdvancedModal(interaction.guild_id, self.setting))
